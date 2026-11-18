@@ -1,0 +1,318 @@
+# Golden dataset — 30 tasks.
+#
+# 20 answerable: the answer must contain the expected facts, must not
+#   contain the forbidden facts, and must cite the source doc.
+# 4 strict: answerable, but the citation must be exactly the one doc.
+# 6 abstain: the corpus does not cover the question; the only passing
+#   answer is the fixed abstention with no citations.
+#
+# Expectations reach the graders (evals/grade.mjs) through the `expect`
+# var as a JSON string. notContains values are plausible-sounding wrong
+# facts that appear nowhere in the corpus — an extractive mock cannot
+# invent them; a live model can, which is what these checks exist for.
+
+# ---------------- answerable (20) ----------------
+
+- description: 'A01 refunds: money-back guarantee'
+  vars:
+    question: "What is the refund policy?"
+    kind: answerable
+    expect: '{"contains":["30-day"],"cite":"refunds"}'
+  assert:
+    - type: javascript
+      value: file://grade.mjs
+      metric: task
+
+- description: 'A02 pricing: Pro monthly price'
+  vars:
+    question: "How much does the Pro plan cost per month?"
+    kind: answerable
+    expect: '{"contains":["$12"],"cite":"plans-and-pricing"}'
+  assert:
+    - type: javascript
+      value: file://grade.mjs
+      metric: task
+
+- description: 'A03 pricing: Business annual per-month price'
+  vars:
+    question: "How much is the Business plan per month on annual billing?"
+    kind: answerable
+    expect: '{"contains":["$20"],"cite":"plans-and-pricing"}'
+  assert:
+    - type: javascript
+      value: file://grade.mjs
+      metric: task
+
+- description: 'A04 password reset: link expiry'
+  vars:
+    question: "How long does a password reset link last?"
+    kind: answerable
+    expect: '{"contains":["1 hour"],"notContains":["24 hours"],"cite":"password-reset"}'
+  assert:
+    - type: javascript
+      value: file://grade.mjs
+      metric: task
+
+- description: 'A05 password reset: password rules'
+  vars:
+    question: "What are the password requirements?"
+    kind: answerable
+    expect: '{"contains":["12 characters"],"cite":"password-reset"}'
+  assert:
+    - type: javascript
+      value: file://grade.mjs
+      metric: task
+
+- description: 'A06 2FA: no SMS codes'
+  vars:
+    question: "Can I receive two-factor authentication codes by text message?"
+    kind: answerable
+    expect: '{"contains":["does not support 2FA by SMS"],"cite":"two-factor-auth"}'
+  assert:
+    - type: javascript
+      value: file://grade.mjs
+      metric: task
+
+- description: 'A07 2FA: recovery code count'
+  vars:
+    question: "How many recovery codes do I get when I enable two-factor authentication?"
+    kind: answerable
+    expect: '{"contains":["10 recovery codes"],"cite":"two-factor-auth"}'
+  assert:
+    - type: javascript
+      value: file://grade.mjs
+      metric: task
+
+- description: 'A08 SSO: which plan'
+  vars:
+    question: "Which plan includes single sign-on?"
+    kind: answerable
+    expect: '{"containsAny":[["Business plan only","single sign-on (SSO)"]],"cite":["sso-saml","plans-and-pricing"]}'
+  assert:
+    - type: javascript
+      value: file://grade.mjs
+      metric: task
+
+- description: 'A09 refunds: late annual cancellation'
+  vars:
+    question: "If I cancel my annual plan after six months, will I get a refund?"
+    kind: answerable
+    expect: '{"contains":["non-refundable"],"cite":"refunds"}'
+  assert:
+    - type: javascript
+      value: file://grade.mjs
+      metric: task
+
+- description: 'A10 payment methods: no PayPal'
+  vars:
+    question: "Can I pay with PayPal?"
+    kind: answerable
+    expect: '{"contains":["do not accept PayPal"],"cite":"payment-methods"}'
+  assert:
+    - type: javascript
+      value: file://grade.mjs
+      metric: task
+
+- description: 'A11 billing: failed payment'
+  vars:
+    question: "What happens if my payment fails?"
+    kind: answerable
+    expect: '{"contains":["paused"],"cite":"billing-cycle"}'
+  assert:
+    - type: javascript
+      value: file://grade.mjs
+      metric: task
+
+- description: 'A12 billing: mid-cycle seat charges'
+  vars:
+    question: "If I add users in the middle of a billing cycle, how am I charged?"
+    kind: answerable
+    expect: '{"contains":["pro-rated"],"cite":"billing-cycle"}'
+  assert:
+    - type: javascript
+      value: file://grade.mjs
+      metric: task
+
+- description: 'A13 members: invitation expiry'
+  vars:
+    question: "How long does a member invitation last?"
+    kind: answerable
+    expect: '{"contains":["7 days"],"notContains":["14 days"],"cite":"seats-and-members"}'
+  assert:
+    - type: javascript
+      value: file://grade.mjs
+      metric: task
+
+- description: 'A14 members: removed member tasks'
+  vars:
+    question: "What happens to the tasks of a member who is removed?"
+    kind: answerable
+    expect: '{"contains":["unassigned"],"cite":"seats-and-members"}'
+  assert:
+    - type: javascript
+      value: file://grade.mjs
+      metric: task
+
+- description: 'A15 plans: upgrade timing'
+  vars:
+    question: "When does an upgrade take effect?"
+    kind: answerable
+    expect: '{"contains":["immediately"],"cite":"change-plan"}'
+  assert:
+    - type: javascript
+      value: file://grade.mjs
+      metric: task
+
+- description: 'A16 plans: downgrade keeps data'
+  vars:
+    question: "Will my data be deleted if I downgrade to a smaller plan?"
+    kind: answerable
+    expect: '{"contains":["not deleted"],"cite":"change-plan"}'
+  assert:
+    - type: javascript
+      value: file://grade.mjs
+      metric: task
+
+- description: 'A17 API: rate limit'
+  vars:
+    question: "What is the API rate limit?"
+    kind: answerable
+    expect: '{"contains":["600 requests per minute"],"notContains":["1000 requests"],"cite":"api-access"}'
+  assert:
+    - type: javascript
+      value: file://grade.mjs
+      metric: task
+
+- description: 'A18 export: download link validity'
+  vars:
+    question: "How long is a workspace export download link valid?"
+    kind: answerable
+    expect: '{"contains":["48 hours"],"cite":"export-data"}'
+  assert:
+    - type: javascript
+      value: file://grade.mjs
+      metric: task
+
+- description: 'A19 import: row limit'
+  vars:
+    question: "How many rows can I import at once?"
+    kind: answerable
+    expect: '{"contains":["1,000 rows"],"cite":"import-data"}'
+  assert:
+    - type: javascript
+      value: file://grade.mjs
+      metric: task
+
+- description: 'A20 support: no live chat'
+  vars:
+    question: "Can I get help over live chat?"
+    kind: answerable
+    expect: '{"contains":["no live chat"],"cite":"support-and-sla"}'
+  assert:
+    - type: javascript
+      value: file://grade.mjs
+      metric: task
+
+# ---------------- citation-strict (4) ----------------
+
+- description: 'S01 export: whole workspace'
+  vars:
+    question: "How do I export my entire workspace?"
+    kind: strict
+    expect: '{"contains":["JSON"],"citeExact":"export-data"}'
+  assert:
+    - type: javascript
+      value: file://grade.mjs
+      metric: task
+
+- description: 'S02 password reset: steps'
+  vars:
+    question: "How do I reset a forgotten password?"
+    kind: strict
+    expect: '{"contains":["Reset password"],"citeExact":"password-reset"}'
+  assert:
+    - type: javascript
+      value: file://grade.mjs
+      metric: task
+
+- description: 'S03 delete workspace: permanent'
+  vars:
+    question: "How do I permanently delete my workspace?"
+    kind: strict
+    expect: '{"contains":["permanent"],"citeExact":"cancel-and-delete"}'
+  assert:
+    - type: javascript
+      value: file://grade.mjs
+      metric: task
+
+- description: 'S04 integrations: Slack'
+  vars:
+    question: "Does TaskNest integrate with Slack?"
+    kind: strict
+    expect: '{"contains":["Slack"],"citeExact":"integrations"}'
+  assert:
+    - type: javascript
+      value: file://grade.mjs
+      metric: task
+
+# ---------------- abstain (6) ----------------
+
+- description: 'U01 uncovered: dark mode'
+  vars:
+    question: "Do you offer a dark mode?"
+    kind: abstain
+    expect: '{}'
+  assert:
+    - type: javascript
+      value: file://grade.mjs
+      metric: task
+
+- description: 'U02 uncovered: founders'
+  vars:
+    question: "Who founded the company and in what year?"
+    kind: abstain
+    expect: '{}'
+  assert:
+    - type: javascript
+      value: file://grade.mjs
+      metric: task
+
+- description: 'U03 uncovered: referral program'
+  vars:
+    question: "Do you have a referral program?"
+    kind: abstain
+    expect: '{}'
+  assert:
+    - type: javascript
+      value: file://grade.mjs
+      metric: task
+
+- description: 'U04 uncovered: student discount'
+  vars:
+    question: "Is there a student discount?"
+    kind: abstain
+    expect: '{}'
+  assert:
+    - type: javascript
+      value: file://grade.mjs
+      metric: task
+
+- description: 'U05 uncovered: book a meeting'
+  vars:
+    question: "Can the assistant book a meeting for me?"
+    kind: abstain
+    expect: '{}'
+  assert:
+    - type: javascript
+      value: file://grade.mjs
+      metric: task
+
+- description: 'U06 uncovered: interface language'
+  vars:
+    question: "How do I change the interface language to Spanish?"
+    kind: abstain
+    expect: '{}'
+  assert:
+    - type: javascript
+      value: file://grade.mjs
+      metric: task

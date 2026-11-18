@@ -52,10 +52,24 @@ export async function loadCorpus(dir: string = CORPUS_DIR): Promise<Doc[]> {
  * (heading line included, so chunk text stays self-describing).
  */
 export function chunkDoc(doc: Doc): Chunk[] {
-  const blocks = doc.body
+  const raw = doc.body
     .split(/\n\s*\n/)
     .map((b) => b.trim())
     .filter((b) => b.length > 0);
+  // A heading-only block is not a chunk: it carries almost no text, and
+  // BM25's length normalization would rank it above real content. Attach
+  // each heading to the block that follows it.
+  const blocks: string[] = [];
+  let pendingHeading = '';
+  for (const block of raw) {
+    if (/^#{1,6}\s[^\n]*$/.test(block)) {
+      pendingHeading = pendingHeading ? `${pendingHeading}\n${block}` : block;
+      continue;
+    }
+    blocks.push(pendingHeading ? `${pendingHeading}\n${block}` : block);
+    pendingHeading = '';
+  }
+  if (pendingHeading) blocks.push(pendingHeading);
   return blocks.map((text, i) => ({ id: `${doc.id}#${i + 1}`, docId: doc.id, text }));
 }
 

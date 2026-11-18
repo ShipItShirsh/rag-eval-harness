@@ -11,8 +11,19 @@ const STOPWORDS = new Set([
   'and', 'or', 'if', 'my', 'your', 'how', 'what', 'when', 'where', 'why',
   'at', 'by', 'from', 'about', 'as', 'be', 'been', 'has', 'have', 'had',
   'will', 'would', 'should', 'this', 'that', 'there', 'than', 'then',
-  'into', 'up', 'me', 'am', 'an', 'much', 'many',
+  'into', 'up', 'me', 'am', 'an', 'much', 'many', 'who', 'whom', 'whose',
+  // The product's own name appears in nearly every doc; it carries no
+  // signal about which doc answers a question.
+  'tasknest',
 ]);
+
+/** Stemming-lite: fold a trailing plural "s" (not "ss") so "passwords"
+ *  matches "password". Applied to corpus and queries alike. */
+function stem(token: string): string {
+  return token.length > 3 && token.endsWith('s') && !token.endsWith('ss')
+    ? token.slice(0, -1)
+    : token;
+}
 
 export function tokenize(text: string): string[] {
   return text
@@ -20,7 +31,8 @@ export function tokenize(text: string): string[] {
     .replace(/[^a-z0-9\s-]/g, ' ')
     .split(/\s+/)
     .map((t) => t.replace(/^-+|-+$/g, ''))
-    .filter((t) => t.length > 1 && !STOPWORDS.has(t));
+    .filter((t) => t.length > 1 && !STOPWORDS.has(t))
+    .map(stem);
 }
 
 export interface ScoredChunk {

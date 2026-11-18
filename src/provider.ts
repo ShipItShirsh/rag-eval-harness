@@ -56,7 +56,7 @@ function splitSentences(text: string): string[] {
     .replace(/\*\*/g, '');
   const sentences = prose
     .split(/(?<=[.!?])\s+/)
-    .map((s) => s.replace(/\s+/g, ' ').trim())
+    .map((s) => s.replace(/\s+/g, ' ').trim().replace(/^\d+\.\s*/, ''))
     .filter((s) => s.length > 15);
   return [...table, ...sentences];
 }
@@ -76,8 +76,13 @@ const FACT_BONUS = 0.75;
  * - an anchor: the lead sentence of the primary document's earliest
  *   retrieved chunk (a doc's opening usually states its main fact, and
  *   may not repeat the question's words);
- * - the best supporting sentences, scored by whole-corpus term rarity
- *   (IDF) plus a bonus for sentences containing a number.
+ * - the two best supporting sentences, scored by whole-corpus term
+ *   rarity (IDF) plus a bonus for sentences containing a number, with
+ *   sentences from other documents penalized — the primary document
+ *   should carry its own answer;
+ * - the immediate neighbours of those sentences within their chunk,
+ *   because a fact and its qualifier often sit in adjacent sentences
+ *   ("payments are non-refundable. This includes annual plans…").
  *
  * Same input, same output — which is what lets the deterministic graders
  * run in CI with no API key. It mirrors the v1 prompt's rules (answer
@@ -115,20 +120,24 @@ export class MockProvider implements Provider {
       chunkIdx: number;
       sentIdx: number;
     }
+    const primaryDoc = (input.chunks[0] as Chunk).docId;
+    const chunkSentences: string[][] = [];
     const picked: Pick[] = [];
     input.chunks.forEach((chunk, chunkIdx) => {
-      splitSentences(chunk.text).forEach((sentence, sentIdx) => {
+      const sentences = splitSentences(chunk.text);
+      chunkSentences.push(sentences);
+      sentences.forEach((sentence, sentIdx) => {
         const matched = [...new Set(tokenize(sentence))].filter((t) => queryTerms.has(t));
         if (matched.length === 0) return;
         let score = matched.reduce((sum, t) => sum + weight(t), 0);
         if (/\d/.test(sentence)) score += FACT_BONUS;
+        if (chunk.docId !== primaryDoc) score *= 0.5;
         picked.push({ sentence, docId: chunk.docId, score, chunkIdx, sentIdx });
       });
     });
     picked.sort((a, z) => z.score - a.score || a.chunkIdx - z.chunkIdx || a.sentIdx - z.sentIdx);
 
     // Anchor: lead sentence of the primary doc's earliest retrieved chunk.
-    const primaryDoc = (input.chunks[0] as Chunk).docId;
     let anchor: Pick | undefined;
     const primaryChunks = input.chunks
       .filter((c) => c.docId === primaryDoc)
@@ -147,11 +156,28 @@ export class MockProvider implements Provider {
       }
     }
 
+    // Selection, in priority order: anchor, the two best supporting
+    // sentences, then the neighbours of everything selected. Capped at
+    // MAX_SENTENCES; output is re-ordered to reading order at the end.
+    const MAX_SENTENCES = 6;
     const chosen = new Map<string, Pick>();
-    if (anchor) chosen.set(anchor.sentence, anchor);
-    for (const p of picked) {
-      if (chosen.size >= 4) break;
-      if (!chosen.has(p.sentence)) chosen.set(p.sentence, p);
+    const add = (p: Pick): void => {
+      if (chosen.size < MAX_SENTENCES && !chosen.has(p.sentence)) chosen.set(p.sentence, p);
+    };
+    if (anchor) add(anchor);
+    const supporters = picked.filter((p) => !chosen.has(p.sentence)).slice(0, 2);
+    for (const p of supporters) add(p);
+    const seeds = [...chosen.values()];
+    for (const seed of seeds) {
+      const sentences = chunkSentences[seed.chunkIdx] ?? [];
+      for (const delta of [-1, 1]) {
+        const idx = seed.sentIdx + delta;
+        const sentence = sentences[idx];
+        const chunk = input.chunks[seed.chunkIdx];
+        if (sentence && chunk) {
+          add({ sentence, docId: chunk.docId, score: 0, chunkIdx: seed.chunkIdx, sentIdx: idx });
+        }
+      }
     }
     const top = [...chosen.values()].sort(
       (a, z) => a.chunkIdx - z.chunkIdx || a.sentIdx - z.sentIdx,

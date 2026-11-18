@@ -1,0 +1,9 @@
+description: 'rag-eval-harness golden dataset — mock provider, deterministic graders'
+prompts:
+  - '{{question}}'
+providers:
+  - id: file://provider.mjs
+    label: 'tasknest-app (mock)'
+tests: file://golden.yaml
+evaluateOptions:
+  repeat: 3

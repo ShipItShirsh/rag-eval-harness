@@ -44,10 +44,12 @@ project.**
 
 ## Status
 
-Phase 1 of 4 (the app under test) is built. The evaluation system —
-golden dataset, graders, prompt variants, CI gates — is specified in
-[SPEC.md](SPEC.md) and lands in the following phases. The full README
-arrives with Phase 4.
+Phases 1–2 of 4 are built: the app under test, and the evaluation system
+— a 30-task golden dataset (20 answerable, 4 citation-strict, 6
+must-abstain) with deterministic graders, run through Promptfoo at 3
+trials per task. Baseline with the mock provider: **pass^3 30/30**. Run
+it with `npm run eval`. Prompt variants and CI gates are Phase 3; the
+full README arrives with Phase 4. The plan is in [SPEC.md](SPEC.md).
 
 ## Run the app
 

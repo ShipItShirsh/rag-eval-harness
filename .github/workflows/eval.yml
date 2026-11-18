@@ -26,6 +26,8 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run eval
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
 
   # Manual or nightly: the same dataset against a live model, with the
   # runner's own API key (repository secret OPENAI_API_KEY). Scores are

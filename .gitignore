@@ -4,3 +4,6 @@ dist/
 *.log
 results/*.json
 !results/history.json
+
+test-results/
+playwright-report/

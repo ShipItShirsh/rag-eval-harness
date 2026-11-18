@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>TaskNest Help Centre — Ask</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+  form { display: flex; gap: 0.5rem; }
+  input { flex: 1; padding: 0.5rem; font-size: 1rem; }
+  button { padding: 0.5rem 1rem; font-size: 1rem; }
+  #answer { white-space: pre-wrap; margin-top: 1.5rem; line-height: 1.5; }
+  #citations { margin-top: 0.75rem; color: #555; }
+  #citations a { margin-right: 0.5rem; }
+</style>
+</head>
+<body>
+<h1>TaskNest Help Centre</h1>
+<p>Ask a question. Answers come only from the help-centre documents, with citations.</p>
+<form id="ask-form">
+  <input id="question" type="text" placeholder="e.g. What is the refund policy?" autocomplete="off">
+  <button type="submit">Ask</button>
+</form>
+<div id="answer"></div>
+<div id="citations"></div>
+<script>
+  const form = document.getElementById('ask-form');
+  const answerEl = document.getElementById('answer');
+  const citationsEl = document.getElementById('citations');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const question = document.getElementById('question').value.trim();
+    if (!question) return;
+    answerEl.textContent = 'Thinking…';
+    citationsEl.textContent = '';
+    const res = await fetch('/api/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question }),
+    });
+    const data = await res.json();
+    answerEl.textContent = data.answer ?? data.error ?? 'No answer.';
+    if (Array.isArray(data.citations) && data.citations.length > 0) {
+      citationsEl.textContent = 'Sources: ';
+      for (const id of data.citations) {
+        const a = document.createElement('a');
+        a.href = '/docs/' + encodeURIComponent(id);
+        a.textContent = id;
+        citationsEl.appendChild(a);
+      }
+    }
+  });
+</script>
+</body>
+</html>

@@ -11,6 +11,37 @@ Built to learn AI evaluation in public — my first eval project, applying
 is 100% synthetic (a fictional product, "TaskNest"); the default provider
 is a deterministic mock, so the whole suite runs free with no API key.
 
+## The problem this solves
+
+Imagine a company puts a chatbot on its help page. The chatbot answers
+customer questions using the company's help documents — refund policy,
+password reset, billing, that kind of thing.
+
+One day someone edits the chatbot's instructions to make it sound
+friendlier. Harmless — except after that edit, the chatbot starts
+inventing a refund policy that doesn't exist, and confidently tells
+customers they can get refunds the company never offers. Nobody notices
+for weeks, because nobody re-checked the chatbot after the edit. And you
+can't check it the normal testing way: the chatbot never answers in
+exactly the same words twice, so a test that expects one exact answer
+fails even when the answer is fine.
+
+This project is an exam for that chatbot:
+
+- **30 fixed questions** — the same questions every time — with an answer
+  key: what a correct answer must say, what it must never say, and which
+  questions it must honestly answer with "I don't know."
+- Every time anything changes — the instructions, the model, the
+  documents — the chatbot **takes the exam again, automatically**, and
+  gets a grade.
+- If the grade drops, the change is **blocked**, and the report names
+  what went wrong: it invented a price, it answered a question it should
+  have said "I don't know" to.
+
+The small help-centre chatbot in this repo is a practice chatbot, built
+so there is a real chatbot to give the exam to. **The exam is the
+project.**
+
 ## Status
 
 Phase 1 of 4 (the app under test) is built. The evaluation system —

@@ -1,0 +1,67 @@
+name: eval-gate
+
+# The PR gate is the point of this repo: any change — above all a prompt
+# change — re-runs the golden dataset against the mock provider ($0, no
+# API key) and the build goes red below a 90% pass^3 rate, with the
+# failing tasks named in the log.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '17 6 * * *' # nightly live eval (skips itself without a key)
+
+jobs:
+  mock-gate:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run eval
+
+  # Manual or nightly: the same dataset against a live model, with the
+  # runner's own API key (repository secret OPENAI_API_KEY). Scores are
+  # appended to results/history.json and committed back. Without the
+  # secret the job reports and skips — it never fails for a missing key.
+  live-eval:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      HAS_KEY: ${{ secrets.OPENAI_API_KEY != '' }}
+    steps:
+      - name: Report missing key
+        if: env.HAS_KEY != 'true'
+        run: echo 'OPENAI_API_KEY secret is not set — skipping the live eval.'
+      - uses: actions/checkout@v4
+        if: env.HAS_KEY == 'true'
+      - uses: actions/setup-node@v4
+        if: env.HAS_KEY == 'true'
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+        if: env.HAS_KEY == 'true'
+      - name: Run live eval
+        if: env.HAS_KEY == 'true'
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: npm run eval:live
+      - name: Record score in history
+        if: env.HAS_KEY == 'true'
+        run: |
+          node evals/record-history.mjs results/v1-live.json live v1
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add results/history.json
+          git diff --cached --quiet || git commit -m 'Record live eval score'
+          git push

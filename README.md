@@ -44,12 +44,22 @@ project.**
 
 ## Status
 
-Phases 1–2 of 4 are built: the app under test, and the evaluation system
-— a 30-task golden dataset (20 answerable, 4 citation-strict, 6
-must-abstain) with deterministic graders, run through Promptfoo at 3
-trials per task. Baseline with the mock provider: **pass^3 30/30**. Run
-it with `npm run eval`. Prompt variants and CI gates are Phase 3; the
-full README arrives with Phase 4. The plan is in [SPEC.md](SPEC.md).
+Phases 1–3 of 4 are built: the app under test, the evaluation system
+(30-task golden dataset, deterministic graders, Promptfoo, 3 trials per
+task), the prompt variants, and the CI gates. Measured with the mock
+provider (`npm run eval`, `npm run eval:v2`, `npm run eval:broken`):
+
+| Prompt | pass^3 | What it shows |
+| --- | --- | --- |
+| v1 (baseline) | 30/30 | The reference score |
+| v2 | 30/30 | Same operational settings; its wording changes target a live model, so the mock scores it identically — the difference is measured on live runs |
+| broken | 6/30 | v1 with the citation rule removed and retrieval depth cut to 1: every answerable task fails, with the failures named (missing citation, missing fact) |
+
+The GitHub Actions gate re-runs the mock eval on every pull request and
+push, and fails the build below 90% pass^3. A live-provider eval
+(manual/nightly, your own API key) appends its score to
+`results/history.json`. The Playwright layer and the full README are
+Phase 4. The plan is in [SPEC.md](SPEC.md).
 
 ## Run the app
 

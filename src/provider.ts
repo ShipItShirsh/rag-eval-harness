@@ -1,5 +1,6 @@
 import type { Chunk } from './corpus.js';
 import { tokenize } from './retrieve.js';
+import { parsePromptConfig, stripPromptConfig } from './prompt-config.js';
 
 export interface ProviderInput {
   question: string;
@@ -186,6 +187,13 @@ export class MockProvider implements Provider {
 
     const citations = [...new Set(top.map((t) => t.docId))];
     const answer = top.map((t) => `${t.sentence} [${t.docId}]`).join(' ');
+
+    // The prompt is the unit of change: if the active prompt drops the
+    // citation rule, this provider behaves like a model that stopped
+    // citing — no citation list, and no [doc] markers in the text.
+    if (parsePromptConfig(input.systemPrompt).citations === 'off') {
+      return { answer: answer.replace(/\s*\[[a-z0-9-]+\]/g, ''), citations: [] };
+    }
     return { answer, citations };
   }
 }
@@ -204,4 +212,59 @@ export function corpusIdf(chunks: Chunk[]): Map<string, number> {
     idf.set(term, Math.log(1 + (n - d + 0.5) / (d + 0.5)));
   }
   return idf;
+}
+
+interface ChatCompletion {
+  choices?: { message?: { content?: string } }[];
+}
+
+/**
+ * One real LLM behind the same interface (OpenAI chat completions,
+ * called with fetch — no SDK). Enabled only when PROVIDER=live and the
+ * runner supplies their own OPENAI_API_KEY; never the default. The model
+ * receives the prompt file's text (config comment stripped) as its
+ * system prompt and the retrieved chunks as context, and its citations
+ * are the [doc-id] markers it actually wrote, filtered to docs that were
+ * in the context.
+ */
+export class LiveProvider implements Provider {
+  readonly name = 'live';
+  private readonly apiKey: string;
+  private readonly model: string;
+
+  constructor(apiKey: string, model: string) {
+    this.apiKey = apiKey;
+    this.model = model;
+  }
+
+  async complete(input: ProviderInput): Promise<ProviderOutput> {
+    const context = input.chunks.map((c) => `[${c.docId}]\n${c.text}`).join('\n\n');
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: this.model,
+        temperature: 0,
+        messages: [
+          { role: 'system', content: stripPromptConfig(input.systemPrompt) },
+          {
+            role: 'user',
+            content: `Help-centre excerpts:\n\n${context}\n\nQuestion: ${input.question}`,
+          },
+        ],
+      }),
+    });
+    if (!res.ok) {
+      throw new Error(`live provider request failed: HTTP ${res.status}`);
+    }
+    const data = (await res.json()) as ChatCompletion;
+    const text = data.choices?.[0]?.message?.content?.trim() ?? '';
+    const inContext = new Set(input.chunks.map((c) => c.docId));
+    const citations = [...new Set([...text.matchAll(/\[([a-z0-9-]+)\]/g)].map((m) => m[1] ?? ''))]
+      .filter((id) => inContext.has(id));
+    return { answer: text, citations };
+  }
 }

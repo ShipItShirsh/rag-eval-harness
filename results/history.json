@@ -1,0 +1,29 @@
+[
+  {
+    "date": "2026-11-18T04:46:13.534Z",
+    "provider": "mock",
+    "prompt": "v1",
+    "tasks": 30,
+    "pass3Tasks": 30,
+    "pass3Rate": 1,
+    "trialPassRate": 1
+  },
+  {
+    "date": "2026-11-18T04:46:13.643Z",
+    "provider": "mock",
+    "prompt": "v2",
+    "tasks": 30,
+    "pass3Tasks": 30,
+    "pass3Rate": 1,
+    "trialPassRate": 1
+  },
+  {
+    "date": "2026-11-18T04:46:13.729Z",
+    "provider": "mock",
+    "prompt": "broken",
+    "tasks": 30,
+    "pass3Tasks": 6,
+    "pass3Rate": 0.2,
+    "trialPassRate": 0.2
+  }
+]

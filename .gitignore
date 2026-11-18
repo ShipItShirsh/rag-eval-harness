@@ -2,5 +2,5 @@ node_modules/
 dist/
 .env
 *.log
-results/latest.json
-results/history.json.tmp
+results/*.json
+!results/history.json

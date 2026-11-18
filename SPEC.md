@@ -1,6 +1,6 @@
 # rag-eval-harness — MVP scope
 
-**Status**: Phases 1–2 built Nov 17, 2026 (Phase 1 live on GitHub; Phase 2 local commit + patch). Phase 2 baseline: pass^3 30/30 (90/90 trials) with the mock provider, `npm run eval` exit 0. Phases 3–4 pending Shirsh's go.
+**Status**: Phases 1–3 built Nov 17, 2026 (Phase 1 live on GitHub; Phases 2–3 local commits + patches). Measured comparison (mock provider): v1 pass^3 30/30, v2 30/30 (wording-only change — identical operational settings), broken 6/30 with named failures; the 90% gate exits 1 on the broken output. CI: .github/workflows/eval.yml (mock gate on PR/push; live job manual/nightly, skips without OPENAI_API_KEY, appends to results/history.json — seeded with the three mock runs). LiveProvider implemented (OpenAI chat completions via fetch, PROVIDER=live + own key) but not yet run — no key has been supplied. Phase 4 pending Shirsh's go.
 **Origin**: Deep-research shortlist (~/workspace/research_notes/standout-qa-portfolio-project-20261118-0346/report.md) — ranked #1 of 5 concepts against current QA Lead/Manager postings.
 **Repo plan**: new standalone public repo `ShipItShirsh/rag-eval-harness` (separate from playwright-framework — this is a different story, not "framework #2").
 **Effort**: MVP ~24 hours part-time across four phases. Polish (Phase 5) is a separate, later decision.

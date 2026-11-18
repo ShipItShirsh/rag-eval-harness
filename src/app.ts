@@ -2,13 +2,11 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { loadCorpus, chunkCorpus, type Doc } from './corpus.js';
 import { Retriever, tokenize } from './retrieve.js';
-import { MockProvider, corpusIdf, type Provider } from './provider.js';
+import { MockProvider, LiveProvider, corpusIdf, type Provider } from './provider.js';
+import { parsePromptConfig, type PromptConfig } from './prompt-config.js';
 
-/** The fixed abstention reply. Must match prompts/v1.md word for word. */
+/** The fixed abstention reply. Must match the prompt files word for word. */
 export const ABSTENTION = "I don't have information about that in the help centre.";
-
-/** Retrieval depth for one question. (The Phase 3 "broken" variant cuts this.) */
-export const TOP_K = 4;
 
 /**
  * Minimum BM25 score for a chunk to count as relevant. Below it, the app
@@ -26,6 +24,7 @@ export interface App {
   ask(question: string): Promise<AskResult>;
   docs: Doc[];
   providerName: string;
+  promptConfig: PromptConfig;
 }
 
 export interface AppOptions {
@@ -34,25 +33,38 @@ export interface AppOptions {
   corpusDir?: string;
 }
 
+function defaultProvider(chunks: ReturnType<typeof chunkCorpus>): Provider {
+  if (process.env['PROVIDER'] === 'live') {
+    const apiKey = process.env['OPENAI_API_KEY'];
+    if (!apiKey) {
+      throw new Error('PROVIDER=live requires OPENAI_API_KEY in the environment');
+    }
+    return new LiveProvider(apiKey, process.env['LIVE_MODEL'] ?? 'gpt-4o-mini');
+  }
+  return new MockProvider(corpusIdf(chunks));
+}
+
 export async function createApp(options: AppOptions = {}): Promise<App> {
   const docs = await loadCorpus(options.corpusDir);
   const chunks = chunkCorpus(docs);
   const retriever = new Retriever(chunks);
-  const provider = options.provider ?? new MockProvider(corpusIdf(chunks));
+  const provider = options.provider ?? defaultProvider(chunks);
   const promptPath =
     options.promptPath ??
     process.env['PROMPT_FILE'] ??
     fileURLToPath(new URL('../prompts/v1.md', import.meta.url));
   const systemPrompt = await readFile(promptPath, 'utf8');
+  const promptConfig = parsePromptConfig(systemPrompt);
 
   return {
     docs,
     providerName: provider.name,
+    promptConfig,
     async ask(question: string): Promise<AskResult> {
       const q = question.trim();
       if (q.length === 0) throw new Error('question must not be empty');
       const relevant = retriever
-        .search(q, TOP_K)
+        .search(q, promptConfig.retrievalDepth)
         .filter((r) => r.score >= RELEVANCE_FLOOR);
       if (relevant.length === 0) {
         return { answer: ABSTENTION, citations: [], retrieved: [] };
